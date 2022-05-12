@@ -1,2 +1,2 @@
-# smishing-protecter
+# Anti-Smishing
 capstone design
