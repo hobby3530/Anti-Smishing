@@ -6,9 +6,10 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.InputStreamReader;
 import java.net.URL;
+import java.net.URLConnection;
 
 public class abc {
-	//int count = 0;
+	int count = 0;
 	
 	public void run() {
 		// csv파일의 절대 경로 입력
@@ -20,25 +21,31 @@ public class abc {
 			bw = new BufferedWriter(new FileWriter(csv, true));
 			
 			//i<x에서 x 값에 페이지 수 입력, 약 20000페이지임
-			for(int i=0; i<10; i++) {
+			for(int i=1560; i<21826; i+=7) {
 			URL url = new URL("https://urlhaus.abuse.ch/browse/page/"+i+"/");
+			//URLConnection con = url.openConnection();
+			//con.setConnectTimeout(1000);
 			
-			BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream(), "euc-kr"));
+			BufferedReader reader = new BufferedReader(new InputStreamReader(url.openStream()));
 			String line;
 			int check_line=0;
 			
 			while((line = reader.readLine()) != null) {
-				if(line.contains("<a href=\"/url/"))
+				if(line.contains("<a href=\"/url/") && !line.contains("Mozi") && !line.contains("mozi"))
 					check_line=1;
 				else
 					check_line=0;
 				if(check_line == 1) {
-						//count++;
+						count++;
 						String temp = line.split(">")[5].split("<")[0];
 						temp = temp.trim();
 						bw.write(temp);
 						bw.newLine();
 						//System.out.println(temp + count);
+						if(count == 100) {
+							Thread.sleep(15000);
+							count = 0;
+						}
 					}	
 				}
 			}
