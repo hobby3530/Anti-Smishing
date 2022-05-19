@@ -16,10 +16,10 @@ public class Driver {
 
     while (it.hasNext()) {
       String[] array = (String[]) it.next();
-      for (String s : array) {
-        System.out.print(s + " ");
-      }
-      System.out.print("\n");
+//      for (String s : array) {
+//        System.out.print(s + " ");
+//      }
+//      System.out.print("\n");
     }
 
     // 이곳은 데이터를 파일로 쓰기 위한 코드

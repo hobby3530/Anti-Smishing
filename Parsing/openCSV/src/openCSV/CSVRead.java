@@ -11,7 +11,7 @@ import com.opencsv.exceptions.CsvValidationException;
 
 public class CSVRead {
 
-  private String filename = "input/openphish.csv";
+  private String filename = "input/testcsv.csv";
 
   public CSVRead() {}
 
@@ -26,13 +26,17 @@ public class CSVRead {
       String[] s;
 
       while ((s = reader.readNext()) != null) {
+    	  //System.out.println(s[0]);
         data.add(s);
       }
+      reader.close();
+      
     } catch (FileNotFoundException e) {
       e.printStackTrace();
     } catch (IOException e) {
       e.printStackTrace();
     }
+    
     return data;
   }
 }
