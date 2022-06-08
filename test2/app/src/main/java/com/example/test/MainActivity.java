@@ -182,9 +182,11 @@ package com.example.test;
 //    }
 //}
 
+import androidx.appcompat.app.AlertDialog;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.app.ActivityCompat;
 
+import android.annotation.SuppressLint;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
@@ -194,6 +196,11 @@ import android.content.res.AssetManager;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.View;
+import android.webkit.ClientCertRequest;
+import android.webkit.JavascriptInterface;
+import android.webkit.WebChromeClient;
+import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 
 //import com.amitshekhar.DebugDB;
@@ -232,14 +239,20 @@ public class MainActivity extends AppCompatActivity {
     Thread workingthread;
     static String message = null;
     static String finalurl = null;
+    String tmp_url = null;
+    int flag = 0;
     char [] alp_start_ch = {'0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
             'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
             'u', 'v', 'w', 'x', 'y', 'z', '.'};
-    int [] alp_start_num = {-2, 857, 5874, 8511, 11129, 12779, 14779, 15619, 16805, 17786,
+    int [] alp_start_safe = {-2, 857, 5874, 8511, 11129, 12779, 14779, 15619, 16805, 17786,
             19473, 87853, 141166, 209115, 251820, 291999, 332867, 370629, 405209, 443291,
             461551, 490159, 525500, 597118, 629111, 652273, 708922, 714360, 748777, 838373,
             903099, 919683, 942708, 969953, 979193, 990082, 999998};
+    int [] alp_start_mal = {-2, 14, 67, 1332, 1629, 1789, 2007, 2153, 2258, 2329, 2451,
+            2576, 4558, 5805, 7151, 8289, 9059, 9797, 10457, 11069, 11700,
+            12009, 12434, 13082, 14605, 15133, 15534, 16511, 16597, 17327, 19088,
+            20017, 20285, 20668, 21323, 21456, 21605, 21753};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -323,36 +336,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-/*
-    public void executeQuery() {
-        Log.d("db","executeQuery 호출됨.");
-
-        // 본인의 columns name and table name
-        Cursor cursor = database.rawQuery("select sid, safeurl from safe_url", null);
-        //safe_url : sid, safeurl / mal_url : mid, malurl
-        int recordCount = cursor.getCount();
-        Log.d("db","레코드 개수 : " + recordCount);
-
-//        for (int i = 0; i < recordCount; i++) {
-        // 10개 레코드만 출력해보기
-        for (int i = 0; i < 5; i++) {
-            cursor.moveToNext();
-
-            // 본인의 데이터 타입이 string 인지 int인지에 맞게
-            String id = cursor.getString(0);
-            String url = cursor.getString(1);
-//            int age = cursor.getInt(3); // int 예시
-//            if(url.equals("elamurray.com"))
-//                Log.d("db", "일치: "+id);
-
-            Log.d("db","레코드 #" + i + " : " + id + ", " + url);
-        }
-        cursor.close();
-    }
-
-
- */
-
     void start() {
         setContentView(R.layout.activity_main);
         final TextView editText = (TextView) findViewById(R.id.text_ur);
@@ -370,10 +353,9 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("mes","message : " + message);
                 Log.d("mes","message[0] : " + message.charAt(0));
                 get_final_url();
-                finalurl = null;
-                //if(finalurl != null)
-                //    search_url();
-                check(message);
+                if(finalurl != null)
+                    search_safe();
+                check();
             }
         });
 
@@ -385,24 +367,26 @@ public class MainActivity extends AppCompatActivity {
                 message = editText.getText().toString();
                 Log.d("mes","message : " + message);
                 Log.d("mes","message[0] : " + message.charAt(0));
-                search_url();
-                check(message);
+                get_final_url();
+                if(finalurl != null)
+                    search_safe();
+                check();
             }
         });
 
     }
 
-    public void check(String enter_url) {
+    public void check() {
         setContentView(R.layout.activity_check);
         final TextView url = (TextView) findViewById(R.id.text_url);
         final TextView messagebox = (TextView) findViewById(R.id.text_infor);
         final Button view = (Button) findViewById(R.id.btn_webview);
         final Button prev = (Button) findViewById(R.id.btn_prev);
-        url.setText(enter_url);
+        url.setText(message);
         messagebox.setText("url 메시지 파싱 결과안내\n\n" + search_message);
 
         view.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { web_view(); }
+            public void onClick(View v) {  web_view(); }
         });
 
         prev.setOnClickListener(new View.OnClickListener() {
@@ -410,7 +394,10 @@ public class MainActivity extends AppCompatActivity {
         });}
 
     public void web_view() {
+        ////
         setContentView(R.layout.activity_webview);
+        gethtmlfile();
+
         final ImageView iv = (ImageView) findViewById(R.id.iv_web);
         final Button prev2 = (Button) findViewById(R.id.btn_prev2);
 
@@ -418,11 +405,12 @@ public class MainActivity extends AppCompatActivity {
 
         prev2.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
-                check(message);
+                check();
             }
         });
     }
 ////
+    /*
     public void geturl(String m) {
         workingthread = new Thread() {
             public void run() {
@@ -435,8 +423,6 @@ public class MainActivity extends AppCompatActivity {
                     System.out.println("error");
                     con.disconnect();
                 }
-                //con.setInstanceFollowRedirects(true);
-                //con.setRequestProperty("User-Agent","");
                 try {
                     if (con.getResponseCode()/100 == 3)
                     {
@@ -457,25 +443,6 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("mes", "result: " +result);
                 con.disconnect();
                 return;
-
-//                HttpURLConnection con = null;
-//                try {
-//                    con = (HttpURLConnection) new URL(m).openConnection();
-//                    if (con.getResponseCode() / 100 == 3) {
-//                        String target = con.getHeaderField("Location");
-//                        if (target != null) {
-//
-//                            result = target;
-//                            Log.d("mes", "result: " + result);
-//                            return;
-//                        }
-//                    }
-//                } catch (IOException e) {
-//                    Log.d("error", "error!");
-//                }
-//                result = con.getURL().toString();
-//                Log.d("mes", "result: " +result);
-//                return;
             }
         };
         workingthread.start();
@@ -540,52 +507,141 @@ public class MainActivity extends AppCompatActivity {
         finalurl = finalurl_spl[0];
         Log.d("mes", "!!finalurl 출력 : " + finalurl);
     }
+*/
+    public void get_final_url() {
+        finalurl = null;
+
+        if(message.contains("https://")) {
+            finalurl = message.split("://")[1].split("/")[0];
+            String[] exefile = message.split("://")[1].split("/");
+
+            if(exefile.length != 1 && exefile[exefile.length-1].contains(".")) {
+                finalurl = null;
+                Log.d("error", "확장자 파일 인식됨");
+                search_message = "확장자 파일, 위험 사이트";
+                return;
+            }
+            else if(finalurl.contains("www")){
+                finalurl = finalurl.substring(4);
+            }
+            Log.d("mes", "정상사이트: " + finalurl);
+        }
+        else if(message.contains("http://")) {
+            finalurl = null;
+            search_message = "http이므로 악성사이트";
+            Log.d("mes", "http이므로 악성으로 판단");
+        }
+        else {
+            finalurl = null;
+            search_message = "프로토콜을 입력해주세요.";
+            Log.d("mes", "프로토콜 입력이 필요함");
+        }
+    }
 
     ////
+    public void search_safe() {
+        if(flag == 0)
+            tmp_url = finalurl;
 
-    public void search_url() {
-        Cursor cursor = database.rawQuery("select sid, safeurl from safe_url", null);
+        else if (flag == 1 && tmp_url.split("\\.").length > 2) {
+            tmp_url = tmp_url.substring(tmp_url.split("\\.")[0].length()+1);
+            Log.d("mes","message_split : " + tmp_url);
+        }
+
+        else {
+            flag = 0;
+            search_mal();
+        }
+
+        Cursor cursor1 = database.rawQuery("select sid, safeurl from safe_url", null);
         //safe_url : sid, safeurl / mal_url : mid, malurl
-        int recordCount = cursor.getCount();
+        int recordCount = cursor1.getCount();
         int c = 0;
         int count = alp_start_ch.length;
         int start_count = 0;
         int end_count = recordCount;
 
         for (c = 0; c < count; c++) {
-            if (alp_start_ch[c] == message.charAt(0)) {
-                start_count = alp_start_num[c];
-
-                cursor.moveToPosition(start_count);
+            if (alp_start_ch[c] == tmp_url.charAt(0)) {
+                start_count = alp_start_safe[c];
+                cursor1.moveToPosition(start_count);
                 Log.d("mes","배열 체크1 " + alp_start_ch[c]);
-                Log.d("mes","배열 체크2 " + alp_start_num[c]);
-                end_count = alp_start_num[c+1];
+                Log.d("mes","배열 체크2 " + alp_start_safe[c]);
+                end_count = alp_start_safe[c+1];
+                Log.d("mes","start 체크 "+ start_count +", end count 체크 " + end_count);
+            }
+        }
+        try {
+            for (int i = start_count; i <= end_count; i++) {
+                cursor1.moveToNext();
+                String id = cursor1.getString(0);
+                String url = cursor1.getString(1);
+
+                if(tmp_url.equals(url)) {
+                    Log.d("db","정상레코드 #" + (i+2) + " : " + id + ", " + url);
+                    search_message = "일치합니다! \n레코드 #" + (i+2) + " : " + id + ", " + url;
+                    flag = 0;
+                    break;
+                }
+                if(i == end_count) {
+                    flag++;
+                    Log.d("db"," flag체크 : " + flag + ", 마지막 정상레코드 #" + i + " 해당 url를 찾지못했습니다!");
+                }
+            }
+        } catch (IndexOutOfBoundsException e) {
+            flag = 0;
+            Log.d("db","찾지못했습니다!");
+            search_message = "인덱스범위초과";
+        }
+        search_safe();
+
+        cursor1.close();
+    }
+
+    public void search_mal() {
+        tmp_url = finalurl;
+        Cursor cursor2 = database.rawQuery("select mid, malurl from mal_url", null);
+        //safe_url : sid, safeurl / mal_url : mid, malurl
+        int recordCount = cursor2.getCount();
+        int c = 0;
+        int count = alp_start_ch.length;
+        int start_count = 0;
+        int end_count = recordCount;
+
+        for (c = 0; c < count; c++) {
+            if (alp_start_ch[c] == tmp_url.charAt(0)) {
+                start_count = alp_start_mal[c];
+
+                cursor2.moveToPosition(start_count);
+                Log.d("mes","배열 체크1 " + alp_start_ch[c]);
+                Log.d("mes","배열 체크2 " + alp_start_mal[c]);
+                end_count = alp_start_mal[c+1];
                 Log.d("mes","start 체크 "+ start_count +", end count 체크 " + end_count);
             }
         }
 
-        //cursor.moveToPosition(990000);
-        //cursor.moveToPosition(alp_start_num[count]);
-        //Log.d("db","레코드 개수 : " + recordCount);
-
         try {
-            //for (int i = 0; i < recordCount; i++) {
-            //for (int i = start_count; i <= end_count; i++) {
             for (int i = start_count; i <= end_count; i++) {
-                cursor.moveToNext();
+                cursor2.moveToNext();
                 // 본인의 데이터 타입이 string 인지 int인지에 맞게
-                String id = cursor.getString(0);
-                String url = cursor.getString(1);
+                String id = cursor2.getString(0);
+                String url = cursor2.getString(1);
 
-                if(url.equals(message)) {
-                    Log.d("db","레코드 #" + i + " : " + id + ", " + url);
-                    search_message = "일치합니다! \n레코드 #" + i + " : " + id + ", " + url;
+                if(tmp_url.equals("url")) {
+                    search_message = "올바른 url를 입력해주세요!!";
+                    break;
+                }
+
+                if(url.equals(tmp_url)) {
+                    Log.d("db","악성레코드 #" + (i+2) + " : " + id + ", " + url);
+                    search_message = " 악성 url로 의심됩니다  \n레코드 #" + (i+2) + " : " + id + ", " + url;
                     break;
                 }
 
                 if(i == end_count) {
-                    Log.d("db","마지막레코드 #" + i + " 해당 url를 찾지못했습니다!");
-                    search_message = "해당 url를 찾지못했습니다ㅠㅠ";
+                    Log.d("db","마지막 악성레코드 #" + i + " 해당 url를 찾지못했습니다!");
+                    search_message = "결과가 없습니다";
+                    break;
                 }
             }
         } catch (IndexOutOfBoundsException e) {
@@ -593,7 +649,39 @@ public class MainActivity extends AppCompatActivity {
             search_message = "인덱스범위초과";
         }
 
-        cursor.close();
+        cursor2.close();
     }
 
+
+    @SuppressLint("JavascriptInterface")
+    public void gethtmlfile() {
+        WebView myWeb;
+        myWeb = (WebView)findViewById(R.id.testWeb);
+        myWeb.getSettings().setJavaScriptEnabled(true);
+
+        class MyJavaScriptInterface {
+
+            private Context ctx;
+
+            MyJavaScriptInterface(Context ctx) {
+                this.ctx = ctx;
+            }
+
+            public void showHTML(String html) {
+                new AlertDialog.Builder(ctx).setTitle("HTML").setMessage(html)
+                        .setPositiveButton(android.R.string.ok, null).setCancelable(false).create().show();
+            }
+
+        }
+
+        myWeb.setWebViewClient(new WebViewClient() {
+            @Override
+            public void onPageFinished(WebView view, String url) {
+                myWeb.loadUrl("javascript:window.HtmlViewer.showHTML" + "('<html>'+document.getElementsByTagName('html')[0].innerHTML+'</html>;");
+            }
+        });
+        myWeb.addJavascriptInterface(new MyJavaScriptInterface(this), "HtmlViewer");
+
+        //myWeb.loadUrl("javascript:this.document.location.href = 'source://' + www.naver.com");
+    }
 }
