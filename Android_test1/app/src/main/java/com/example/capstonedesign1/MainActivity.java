@@ -12,8 +12,12 @@ import android.graphics.Color;
 import android.graphics.drawable.GradientDrawable;
 import android.os.Bundle;
 import android.util.Log;
+import android.view.Gravity;
+import android.view.MotionEvent;
 import android.view.View;
+import android.webkit.WebSettings;
 import android.webkit.WebView;
+import android.webkit.WebViewClient;
 import android.widget.EditText;
 
 //import com.amitshekhar.DebugDB;
@@ -21,10 +25,16 @@ import android.widget.EditText;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
+import java.io.BufferedReader;
+import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
+import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.IOException;
+import java.io.InputStreamReader;
+import java.net.HttpURLConnection;
+import java.net.URL;
 import java.util.List;
 
 import static java.sql.DriverManager.println;
@@ -37,6 +47,7 @@ import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
+import android.widget.Toast;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -45,18 +56,28 @@ public class MainActivity extends AppCompatActivity {
     SQLiteDatabase database;
 
     int flag = 0;
+    int warnid = 0;
     //int lda = message.length();
     static String message = null;
     static String finalurl = null;
     static String search_message = null;
+    String [] warn = {"*** !!위험합니다!! ***", "** !!주의하세요!! **", "* !!의심해보세요!! *"};
+    String warn1 = null;
+    String warn2 = null;
     int minLDA1 = 0;
     int minLDA2 = 0;
     int sameid1 = 0;
     int sameid2 = 0;
+    double persent1 = 0;
+    double persent2 = 0;
+    String per1 = null;
+    String per2 = null;
     String sameurl1 = null;
     String sameurl2 = null;
     String tmp_url = null;
     String[] s = null;
+    Thread workingthread;
+    WebSettings mWebSettings;
     char [] alp_start_ch = {'.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
             'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
@@ -231,6 +252,9 @@ public class MainActivity extends AppCompatActivity {
         final TextView messagebox = (TextView) findViewById(R.id.text_infor);
         final Button view = (Button) findViewById(R.id.btn_webview);
         final Button prev = (Button) findViewById(R.id.btn_prev);
+        final Button report = (Button) findViewById(R.id.btn_report);
+        final ImageView warn = (ImageView) findViewById(R.id.iv_warn);
+        final ImageView safe = (ImageView) findViewById(R.id.iv_safe);
         //warn.setBackgroundColor(Color.parseColor("#000000"));
 //        final WebView wv = (WebView) findViewById(R.id.webview);
 
@@ -238,24 +262,62 @@ public class MainActivity extends AppCompatActivity {
         //messagebox.setText("url 메시지 파싱 결과안내");
         messagebox.setText("<url 메시지 파싱 결과안내>\n\n" + search_message);
 
+        if (persent1 + persent2 != 0 && persent1 < 65 && persent2 < 65)
+            report.setVisibility(View.VISIBLE);
+
+        if (warnid == 0)
+            warn.setVisibility(View.VISIBLE);
+
+        if (warnid == 1)
+            safe.setVisibility(View.VISIBLE);
+
         view.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) {
                 //wv.loadUrl("file:///android_asset/naver.html");
+                //get_view_html("https://www.google.com");
                 web_view();
             }
         });
 
         prev.setOnClickListener(new View.OnClickListener() {
             public void onClick(View v) { start(); }
-        });}
+        });
+
+        report.setOnClickListener(new View.OnClickListener() {
+            public void onClick(View view) {
+                Toast toast = Toast.makeText(getApplicationContext(), "Report를 제출하였습니다!", Toast.LENGTH_LONG);
+                toast.setGravity(Gravity.CENTER, 0, 280);
+                toast.show();
+            }
+        });
+
+    }
 
     public void web_view() {
         setContentView(R.layout.activity_webview);
-        final ImageView iv = (ImageView) findViewById(R.id.iv_web);
+        //final ImageView iv = (ImageView) findViewById(R.id.iv_web);
         final Button prev2 = (Button) findViewById(R.id.btn_prev2);
         final WebView wv = (WebView) findViewById(R.id.webview);
-        wv.loadUrl("file:///android_asset/naver.html");
+
+        //wv.setWebViewClient(new WebViewClient()); // 클릭시 새창 안뜨게
+        //wv.getSettings().setSupportZoom(true);
+        wv.getSettings().setUseWideViewPort(true);
+        wv.getSettings().setLoadWithOverviewMode(true);
+        //wv.loadUrl("file:///android_asset/naver.html");
+        //wv.loadUrl("view-source:www.naver.com.html");
+        //wv.loadUrl("view-source:www." + finalurl);
+        //mWebSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
+
+        wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/naver.html");
         //wv.loadUrl("file:///android_asset/clc.html");
+        Log.d("html", "경로안내 : " + getExternalFilesDir(null).getPath());
+        //wv.loadUrl("/storage/emulated/0/Android/data/com.example.capstondesign1/files/htmlfile/naver.html");
+        wv.setOnTouchListener(new View.OnTouchListener() {
+            public boolean onTouch(View view, MotionEvent event) {
+                return true;
+            }
+        });
+
         database.close();
 
         prev2.setOnClickListener(new View.OnClickListener() {
@@ -267,6 +329,7 @@ public class MainActivity extends AppCompatActivity {
 
     public void get_final_url() {
         finalurl = null;
+        warnid = 0;
         if(message.contains("https://")) {
             finalurl = message.split("://")[1].split("/")[0];
             String[] exefile = message.split("://")[1].split("/");
@@ -324,8 +387,9 @@ public class MainActivity extends AppCompatActivity {
 
                 if(tmp_url.equals(url) && flag != -2) {
                     Log.d("db","정상레코드 #" + (i+2) + " : " + id + ", " + url);
-                    search_message = "일치합니다! \n레코드 #" + (i+2) + " : " + id + ", " + url;
+                    search_message = "정상 url 사이트입니다! \n레코드 #" + (i+2) + " : " + id + ", " + url;
                     flag = 0;
+                    warnid = 1;
                     break;
                 }
 
@@ -354,6 +418,7 @@ public class MainActivity extends AppCompatActivity {
     }
 
     public void search_mal() {
+        warnid = 0;
         String tmp_url = finalurl;
         Cursor cursor2 = database.rawQuery("select mid, malurl from mal_url", null);
         //safe_url : sid, safeurl / mal_url : mid, malurl
@@ -390,7 +455,7 @@ public class MainActivity extends AppCompatActivity {
                 if(url.equals(tmp_url)) {
                     Log.d("db","악성레코드 #" + (i+2) + " : " + id + ", " + url);
 //                    search_message = "** !!악성 url로 의심됩니다!! ** \n레코드 #" + (i+2) + " : " + id + ", " + url;
-                    search_message = "** !!악성 url로 의심됩니다!! ** \n" + url;
+                    search_message = "** !!악성 url로 의심됩니다!! ** \n블랙리스트 탐지결과 악성 사이트입니다. 주의하세요! " + url;
                     break;
                 }
 
@@ -478,29 +543,47 @@ public class MainActivity extends AppCompatActivity {
                         Log.d("mes", "i " + i + ", url: " + url + ", LDA체크 " + minLDA1);
                         sameid1 = i+2;
                         sameurl1 = url;
+                        persent1 = (1.0-((double)minLDA1/(double)url.length()))*100;
+                        per1 = String.format("%.1f", persent1);
                     }
                 }
 
                 if(i == end_count) {
                     flag++;
-                    Log.d("db", " flag체크 : " + flag + ", 마지막 정상레코드 #" + i + ", 횟수: " + n + " 해당 url를 찾지못했습니다!");
+                    Log.d("db", " flag체크 : " + flag + ", 마지막 정상레코드 #" + i + ", 횟수: " + n);
 
                     if (flag == -1 && tmp_url.split("\\.").length > 2) {
-                        minLDA2 = minLDA1; sameid2 = sameid1; sameurl2 = sameurl1;
+                        minLDA2 = minLDA1; sameid2 = sameid1; sameurl2 = sameurl1; persent2 = persent1; per2 = per1;
                         tmp_url = tmp_url.substring(tmp_url.split("\\.")[0].length() + 1);
                         Log.d("mes", "LDA_split : " + tmp_url);
                         search_LDA();
                     }
                     else {
+                        if ((persent1 <= 100 && persent1 >= 85) || (persent2 <= 100 && persent2 >= 85)) {
+                            warn1 = warn[0] + "\n"; warn2 = warn[0] + "\n";
+                        }
+                        else if ((persent1 < 85 && persent1 >= 75) || (persent2 < 85 && persent2 >= 75)) {
+                            warn1 = warn[1] + "\n"; warn2 = warn[1] + "\n";
+                        }
+                        else if ((persent1 < 75 && persent1 >= 65) || (persent2 < 75 && persent2 >= 65)) {
+                            warn1 = warn[2] + "\n"; warn2 = warn[2] + "\n";
+                        }
+                        else {
+                            search_message = "더 나은 탐지를 위해 아래의 제보하기 버튼을 눌러주세요!!";
+                            flag = 0;
+                            break;
+                        }
+
                         if (flag == -1) {
-                            search_message = "** !!주의하세요!! **\n" + sameurl1 + "의 사칭사이트로 의심됩니다! " + sameid1 + ", " + minLDA1;
+                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 사칭사이트로 의심됩니다! " + sameid1;
+                            flag = 0;
+                        }
+                        else if (flag == 0 && persent1 <= persent2) {
+                            search_message = warn2 + sameurl2 + "와 " + per2 + "% 유사한 사칭사이트로 의심됩니다! " + sameid2;
                             flag = 0;
                         }
                         else {
-                            if (minLDA1 < minLDA2)
-                                search_message = "** !!주의하세요!! **\n" + sameurl1 + "의 부가사칭사이트로 의심됩니다! " + sameid1 + ", " + minLDA1;
-                            else
-                                search_message = "** !!주의하세요!! **\n" + sameurl2 + "의 사칭사이트로 의심됩니다! " + sameid2 + ", " + minLDA2;
+                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 부가 사칭사이트로 의심됩니다! " + sameid1;
                             flag = 0;
                         }
                     }
@@ -514,4 +597,71 @@ public class MainActivity extends AppCompatActivity {
 
         cursor1.close();
     }
+
+    /*
+    public void get_view_html(String url) {
+        workingthread = new Thread() {
+            public void run() {
+                BufferedWriter bw = null;
+                Log.d("html", "함수 들어감");
+                try {
+                    String line;
+                    URL inurl = new URL(url);
+                    HttpURLConnection conn = (HttpURLConnection) inurl.openConnection();
+                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
+                    if(conn != null) {
+                        conn.setConnectTimeout(4000);
+                        int check_code = conn.getResponseCode();
+                        Log.d("html", "check_code:" + check_code);
+                        if (check_code/100 == 3) {
+                            Log.d("html", "연결 준비 완료");
+                            File testhtml = new File(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+
+                            Log.d("html", "파일 생성 됨");
+                            bw = new BufferedWriter(new FileWriter(testhtml, false));
+                            Log.d("html", "파일 쓰기 준비 완료");
+
+                            while ((line = reader.readLine()) != null) {
+//				if(line.contains("href=")) {
+//					String re = line.split("href=\"")[1];
+//					re = re.split("\"")[0];
+//					line = line.replace(re, "#");
+//				}
+                                bw.write(line);
+                                Log.d("html", "한줄씀");
+                                bw.newLine();
+                            }
+                            Log.d("html", "파일 쓰기 완료");
+                            bw.newLine();
+                            bw.flush();
+                            reader.close();
+                        }
+                    }
+                    else
+                        Log.d("html", "conn은 null");
+                    conn.disconnect();
+                    return;
+
+                } catch (Exception e) {
+                    Log.d("html", "error!");
+                } finally {
+
+                    try {
+                        if (bw != null) {
+                            bw.flush();
+                            bw.close();
+                        }
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    }
+                }
+            }
+        };
+        workingthread.start();
+        //WebView viewhtml = (WebView) findViewById(R.id.testWeb);
+        //viewhtml.loadUrl("/data/data/com.example.test/htmlfile/testhtml.html");
+        //viewhtml.loadUrl(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+    }
+    */
+
 }
