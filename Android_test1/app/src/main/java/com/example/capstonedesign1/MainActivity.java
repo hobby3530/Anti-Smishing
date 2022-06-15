@@ -1,15 +1,15 @@
 package com.example.capstonedesign1;
 
+import androidx.annotation.RequiresApi;
 import androidx.appcompat.app.AppCompatActivity;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
 
 import android.content.Context;
-import android.content.Intent;
 import android.content.res.AssetManager;
-import android.graphics.Color;
-import android.graphics.drawable.GradientDrawable;
+import android.os.AsyncTask;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import android.view.Gravity;
@@ -17,37 +17,25 @@ import android.view.MotionEvent;
 import android.view.View;
 import android.webkit.WebSettings;
 import android.webkit.WebView;
-import android.webkit.WebViewClient;
-import android.widget.EditText;
-
-//import com.amitshekhar.DebugDB;
-//import com.amitshekhar.utils.DatabaseHelper;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
 import java.io.BufferedWriter;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.FileWriter;
 import java.io.InputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
-import java.net.HttpURLConnection;
-import java.net.URL;
-import java.util.List;
 
 import static java.sql.DriverManager.println;
 
-import android.content.Context;
-import android.os.Bundle;
-import android.text.InputType;
-import android.util.Log;
-import android.view.View;
 import android.widget.Button;
 import android.widget.ImageView;
 import android.widget.TextView;
 import android.widget.Toast;
+import org.jsoup.Jsoup;
+import org.jsoup.nodes.Document;
+
 
 public class MainActivity extends AppCompatActivity {
 
@@ -57,10 +45,12 @@ public class MainActivity extends AppCompatActivity {
 
     int flag = 0;
     int warnid = 0;
-    //int lda = message.length();
     static String message = null;
+    static String sms = null;
     static String finalurl = null;
     static String search_message = null;
+    static String sms_report1 = null;
+    static String sms_report2 = null;
     String [] warn = {"*** !!위험합니다!! ***", "** !!주의하세요!! **", "* !!의심해보세요!! *"};
     String warn1 = null;
     String warn2 = null;
@@ -76,8 +66,6 @@ public class MainActivity extends AppCompatActivity {
     String sameurl2 = null;
     String tmp_url = null;
     String[] s = null;
-    Thread workingthread;
-    WebSettings mWebSettings;
     char [] alp_start_ch = {'.', '0', '1', '2', '3', '4', '5', '6', '7', '8', '9',
             'a', 'b', 'c', 'd', 'e', 'f', 'g', 'h', 'i', 'j',
             'k', 'l', 'm', 'n', 'o', 'p', 'q', 'r', 's', 't',
@@ -90,8 +78,16 @@ public class MainActivity extends AppCompatActivity {
             2576, 4558, 5805, 7151, 8289, 9059, 9797, 10457, 11069, 11700,
             12009, 12434, 13082, 14605, 15133, 15534, 16511, 16597, 17327, 19088,
             20017, 20285, 20668, 21323, 21456, 21605, 21753};
-
-
+    String [] extension_name = {".aac", ".adt", ".adts", ".accdb", ".accde", ".accdr", ".accdt", ".aif", ".aifc",
+            ".aiff", ".aspx", ".avi", ".bat", ".bin", ".bmp", ".cab", ".cda", ".csv", ".dif", ".dll", ".doc", ".docm",
+            ".docx", ".dot", ".dotx", ".eml", ".eps", ".exe", ".flv", ".gif", ".htm", ".html", ".ini", ".iso", ".jar",
+            ".jpg", ".jpeg", ".m4a", ".mdb", ".mid", ".midi", ".mov", ".mp3", ".mp4", ".mpeg", ".mpg", ".msi", ".mui",
+            ".PDF", ".pdf", ".png", ".pot", ".potm", ".potx", ".ppam", ".pps", ".ppsm", ".ppsx", ".ppt", ".pptm", ".pptx",
+            ".psd", ".pst", ".pub", ".rar", ".rtf", ".sldm", ".sldx", ".swf", ".sys", ".tif", ".tiff", ".tmp", ".txt", ".vob",
+            ".vsd", ".vsdm", ".vsdx", ".vss", ".vssm", ".vst", ".vstm", ".vstx", ".wav", ".wbk", ".wks", ".wma", ".wmd",
+            ".wmv", ".wmz", ".wms", ".wpd", ".wp5", ".xla", ".xlam", ".xll", ".xlm", ".xls", ".xlsm", ".xlsx", ".xlt",
+            ".xltm", ".xltx", ".xps"};
+    String [] strange_sms = {"[국외발신]", "[국외 발신]", "[해외발신]", "[해외 발신]", "[국제발신]", "[국제 발신]", "(광고)"};
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -172,36 +168,6 @@ public class MainActivity extends AppCompatActivity {
         }
     }
 
-/*
-    public void executeQuery() {
-        Log.d("db","executeQuery 호출됨.");
-
-        // 본인의 columns name and table name
-        Cursor cursor = database.rawQuery("select sid, safeurl from safe_url", null);
-        //safe_url : sid, safeurl / mal_url : mid, malurl
-        int recordCount = cursor.getCount();
-        Log.d("db","레코드 개수 : " + recordCount);
-
-//        for (int i = 0; i < recordCount; i++) {
-        // 10개 레코드만 출력해보기
-        for (int i = 0; i < 5; i++) {
-            cursor.moveToNext();
-
-            // 본인의 데이터 타입이 string 인지 int인지에 맞게
-            String id = cursor.getString(0);
-            String url = cursor.getString(1);
-//            int age = cursor.getInt(3); // int 예시
-//            if(url.equals("elamurray.com"))
-//                Log.d("db", "일치: "+id);
-
-            Log.d("db","레코드 #" + i + " : " + id + ", " + url);
-        }
-        cursor.close();
-    }
-
-
- */
-
     void start() {
         setContentView(R.layout.activity_main);
         final TextView editText = (TextView) findViewById(R.id.text_ur);
@@ -219,6 +185,13 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("mes","message : " + message);
                 Log.d("mes","message[0] : " + message.charAt(0));
 
+                sms = messagebox.getText().toString();
+                Log.d("mes","SMS : " + sms);
+                if(!sms.equals(""))
+                    search_mes();
+                else
+                    sms_report1 = "";
+
                 get_final_url();
                 if(finalurl != null)
                     search_safe();
@@ -235,6 +208,14 @@ public class MainActivity extends AppCompatActivity {
                 message = editText.getText().toString();
                 Log.d("mes","message : " + message);
                 Log.d("mes","message[0] : " + message.charAt(0));
+
+                sms = messagebox.getText().toString();
+                Log.d("mes","SMS : " + sms);
+                if(!sms.equals(""))
+                    search_mes();
+                else
+                    sms_report1 = "";
+
 
                 get_final_url();
                 if(finalurl != null)
@@ -255,12 +236,9 @@ public class MainActivity extends AppCompatActivity {
         final Button report = (Button) findViewById(R.id.btn_report);
         final ImageView warn = (ImageView) findViewById(R.id.iv_warn);
         final ImageView safe = (ImageView) findViewById(R.id.iv_safe);
-        //warn.setBackgroundColor(Color.parseColor("#000000"));
-//        final WebView wv = (WebView) findViewById(R.id.webview);
 
         url.setText(message);
-        //messagebox.setText("url 메시지 파싱 결과안내");
-        messagebox.setText("<url 메시지 파싱 결과안내>\n\n" + search_message);
+        messagebox.setText("<url 메시지 파싱 결과안내>\n\n" + search_message + sms_report1);
 
         if (persent1 + persent2 != 0 && persent1 < 65 && persent2 < 65)
             report.setVisibility(View.VISIBLE);
@@ -275,12 +253,15 @@ public class MainActivity extends AppCompatActivity {
             public void onClick(View v) {
                 //wv.loadUrl("file:///android_asset/naver.html");
                 //get_view_html("https://www.google.com");
-                web_view();
+                new RealTask().execute();
+                //web_view();
             }
         });
 
         prev.setOnClickListener(new View.OnClickListener() {
-            public void onClick(View v) { start(); }
+            public void onClick(View v) {
+                persent1 = persent2 = 0;
+                start(); }
         });
 
         report.setOnClickListener(new View.OnClickListener() {
@@ -300,18 +281,25 @@ public class MainActivity extends AppCompatActivity {
         final WebView wv = (WebView) findViewById(R.id.webview);
 
         //wv.setWebViewClient(new WebViewClient()); // 클릭시 새창 안뜨게
+        //wv.getSettings().setBuiltInZoomControls(true);
         //wv.getSettings().setSupportZoom(true);
+        wv.getSettings().setAllowContentAccess(true);
+        wv.getSettings().setAllowFileAccess(true);
         wv.getSettings().setUseWideViewPort(true);
         wv.getSettings().setLoadWithOverviewMode(true);
+        //wv.setInitialScale(100);
         //wv.loadUrl("file:///android_asset/naver.html");
         //wv.loadUrl("view-source:www.naver.com.html");
         //wv.loadUrl("view-source:www." + finalurl);
         //mWebSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
-        wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/naver.html");
+        //wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/naver.html");
         //wv.loadUrl("file:///android_asset/clc.html");
-        Log.d("html", "경로안내 : " + getExternalFilesDir(null).getPath());
+        //Log.d("html", "경로안내 : " + getExternalFilesDir(null).getPath());
         //wv.loadUrl("/storage/emulated/0/Android/data/com.example.capstondesign1/files/htmlfile/naver.html");
+        wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+        Log.d("html", wv.getUrl());
+
         wv.setOnTouchListener(new View.OnTouchListener() {
             public boolean onTouch(View view, MotionEvent event) {
                 return true;
@@ -335,10 +323,14 @@ public class MainActivity extends AppCompatActivity {
             String[] exefile = message.split("://")[1].split("/");
 
             if(exefile.length != 1 && exefile[exefile.length-1].contains(".")) {
-                finalurl = null;
-                Log.d("error", "확장자 파일 인식됨");
-                search_message = "확장자 파일, 위험 사이트";
-                return;
+                for(int i=0; i<extension_name.length; i++) {
+                    if(exefile[exefile.length-1].contains(extension_name[i])) {
+                        finalurl = null;
+                        Log.d("error", "확장자 파일 인식됨");
+                        search_message = "확장자 파일, 위험 사이트";
+                        return;
+                    }
+                }
             }
             if(finalurl.contains("www")){
                 finalurl = finalurl.substring(4);
@@ -387,7 +379,7 @@ public class MainActivity extends AppCompatActivity {
 
                 if(tmp_url.equals(url) && flag != -2) {
                     Log.d("db","정상레코드 #" + (i+2) + " : " + id + ", " + url);
-                    search_message = "정상 url 사이트입니다! \n레코드 #" + (i+2) + " : " + id + ", " + url;
+                    search_message = "** 화이트리스트 탐지결과 **\n 정상 url 사이트입니다!\n" + id + ", " + url;
                     flag = 0;
                     warnid = 1;
                     break;
@@ -447,11 +439,6 @@ public class MainActivity extends AppCompatActivity {
                 String id = cursor2.getString(0);
                 String url = cursor2.getString(1);
 
-                if(tmp_url.equals("url")) {
-                    search_message = "올바른 url를 입력해주세요!!";
-                    break;
-                }
-
                 if(url.equals(tmp_url)) {
                     Log.d("db","악성레코드 #" + (i+2) + " : " + id + ", " + url);
 //                    search_message = "** !!악성 url로 의심됩니다!! ** \n레코드 #" + (i+2) + " : " + id + ", " + url;
@@ -461,7 +448,6 @@ public class MainActivity extends AppCompatActivity {
 
                 if(i == end_count) {
                     Log.d("db","마지막 악성레코드 #" + i + " 해당 url를 찾지못했습니다!");
-                    search_message = "결과가 없습니다";
                     flag = -2;
                     search_LDA();
                 }
@@ -535,8 +521,6 @@ public class MainActivity extends AppCompatActivity {
                 String url = cursor1.getString(1);
                 n++;
 
-
-//              if (n <= 10) {
                 if (tmp_url.length()+5 > url.length() || tmp_url.length()-5 < url.length()) {
                     if (minLDA1 > getDistance(tmp_url, url)) {
                         minLDA1 = getDistance(tmp_url, url);
@@ -575,15 +559,15 @@ public class MainActivity extends AppCompatActivity {
                         }
 
                         if (flag == -1) {
-                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 사칭사이트로 의심됩니다! " + sameid1;
+                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 사칭사이트로 의심됩니다!";
                             flag = 0;
                         }
                         else if (flag == 0 && persent1 <= persent2) {
-                            search_message = warn2 + sameurl2 + "와 " + per2 + "% 유사한 사칭사이트로 의심됩니다! " + sameid2;
+                            search_message = warn2 + sameurl2 + "와 " + per2 + "% 유사한 사칭사이트로 의심됩니다!";
                             flag = 0;
                         }
                         else {
-                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 부가 사칭사이트로 의심됩니다! " + sameid1;
+                            search_message = warn1 + sameurl1 + "와 " + per1 + "% 유사한 부가 사칭사이트로 의심됩니다!";
                             flag = 0;
                         }
                     }
@@ -598,70 +582,72 @@ public class MainActivity extends AppCompatActivity {
         cursor1.close();
     }
 
-    /*
-    public void get_view_html(String url) {
-        workingthread = new Thread() {
-            public void run() {
-                BufferedWriter bw = null;
-                Log.d("html", "함수 들어감");
-                try {
-                    String line;
-                    URL inurl = new URL(url);
-                    HttpURLConnection conn = (HttpURLConnection) inurl.openConnection();
-                    BufferedReader reader = new BufferedReader(new InputStreamReader(conn.getInputStream()));
-                    if(conn != null) {
-                        conn.setConnectTimeout(4000);
-                        int check_code = conn.getResponseCode();
-                        Log.d("html", "check_code:" + check_code);
-                        if (check_code/100 == 3) {
-                            Log.d("html", "연결 준비 완료");
-                            File testhtml = new File(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
-
-                            Log.d("html", "파일 생성 됨");
-                            bw = new BufferedWriter(new FileWriter(testhtml, false));
-                            Log.d("html", "파일 쓰기 준비 완료");
-
-                            while ((line = reader.readLine()) != null) {
-//				if(line.contains("href=")) {
-//					String re = line.split("href=\"")[1];
-//					re = re.split("\"")[0];
-//					line = line.replace(re, "#");
-//				}
-                                bw.write(line);
-                                Log.d("html", "한줄씀");
-                                bw.newLine();
-                            }
-                            Log.d("html", "파일 쓰기 완료");
-                            bw.newLine();
-                            bw.flush();
-                            reader.close();
-                        }
-                    }
-                    else
-                        Log.d("html", "conn은 null");
-                    conn.disconnect();
-                    return;
-
-                } catch (Exception e) {
-                    Log.d("html", "error!");
-                } finally {
-
-                    try {
-                        if (bw != null) {
-                            bw.flush();
-                            bw.close();
-                        }
-                    } catch (Exception e) {
-                        e.printStackTrace();
-                    }
+    class RealTask extends AsyncTask<Void,Void,String> {
+        @Override
+        protected String doInBackground(Void... voids) {
+            StringBuilder sb=new StringBuilder();
+            BufferedWriter bw = null;
+            //실시간 검색어를 가져오기위한 String객체(String 과는 차이가 있음)
+            try {
+                Document doc= Jsoup.connect(message).get();
+                File dir = new File(getExternalFilesDir(null) + "/htmlfile");
+                if(!dir.exists()){ dir.mkdir(); }
+                File testhtml = new File(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+                bw = new BufferedWriter(new FileWriter(testhtml, false));
+                Log.d("error", "파일 쓰기 준비 완료");
+                String gethtml = doc.toString();
+                Log.d("error", "파일 문자열 변환 완료");
+                if(gethtml.contains("document.location.href") || gethtml.contains("http-equiv") || gethtml.contains("window.location") || gethtml.contains("window.location.href")) {
+                    gethtml = gethtml.replaceAll("document.location.href", " ");
+                    gethtml = gethtml.replaceAll("http-equiv", " ");
+                    gethtml = gethtml.replaceAll("window.location", " ");
+                    gethtml = gethtml.replaceAll("window.location.href", " ");
                 }
+                bw.write(gethtml);
+                //Log.d("html", doc.toString());
+                //sb.append(doc.toString());
+            } catch (IOException e) {
+                try {
+                    File testhtml = new File(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+                    bw = new BufferedWriter(new FileWriter(testhtml, false));
+                    bw.write("<html><head></head><body><h1>302 FOUND<hr><h2>해당 사이트는 없는 사이트입니다.</body>");
+                }
+                catch(Exception e2) {}
             }
-        };
-        workingthread.start();
-        //WebView viewhtml = (WebView) findViewById(R.id.testWeb);
-        //viewhtml.loadUrl("/data/data/com.example.test/htmlfile/testhtml.html");
-        //viewhtml.loadUrl(getExternalFilesDir(null) + "/htmlfile/testhtml.html");
+            try {
+                bw.close();
+            }
+            catch(Exception e) {}
+            return sb.toString();
+        }
+
+        @RequiresApi(api = Build.VERSION_CODES.P)
+        @Override
+        protected void onPostExecute(String s) {
+            super.onPostExecute(s);
+            web_view();
+        }
     }
-    */
+
+    public void search_mes() {
+        for (int i = 0; i < strange_sms.length; i++) {
+            if (sms.contains(strange_sms[i])) {
+                sms_report1 = strange_sms[i] + " 이므로 주의가 필요합니다.\n";
+                break;
+            }
+            else
+                sms_report1 = "";
+        }
+
+        if (((sms.length() - (double)sms.replaceAll("[.,:*#?%^ ]","").length())/sms.length()) > 0.2)
+            sms_report2 = "문장구조분석결과 특수문자 기준치 초과로 주의가 필요합니다.";
+        else
+            sms_report2 = "";
+
+        if (!sms_report1.equals("") || !sms_report2.equals(""))
+            sms_report1 = "\n\n** 문자메시지 탐지 결과 **\n" + sms_report1 + sms_report2;
+
+        Log.d("sms", "sms_report1 : " + sms_report1 + " sms_report2 : " + sms_report2);
+    }
 
 }
