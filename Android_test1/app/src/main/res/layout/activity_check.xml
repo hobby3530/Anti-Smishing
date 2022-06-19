@@ -92,10 +92,10 @@
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.849"
+        app:layout_constraintHorizontal_bias="0.846"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.344" />
+        app:layout_constraintVertical_bias="0.286" />
 
     <ImageView
         android:id="@+id/iv_safe"
@@ -105,9 +105,9 @@
         android:visibility="invisible"
         app:layout_constraintBottom_toBottomOf="parent"
         app:layout_constraintEnd_toEndOf="parent"
-        app:layout_constraintHorizontal_bias="0.846"
+        app:layout_constraintHorizontal_bias="0.849"
         app:layout_constraintStart_toStartOf="parent"
         app:layout_constraintTop_toTopOf="parent"
-        app:layout_constraintVertical_bias="0.292" />
+        app:layout_constraintVertical_bias="0.361" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
