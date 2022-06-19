@@ -265,6 +265,7 @@ public class MainActivity extends AppCompatActivity {
                 Toast toast = Toast.makeText(getApplicationContext(), "Report를 제출하였습니다!", Toast.LENGTH_LONG);
                 toast.setGravity(Gravity.CENTER, 0, 280);
                 toast.show();
+                submit_report();
             }
         });
 
@@ -272,25 +273,14 @@ public class MainActivity extends AppCompatActivity {
 
     public void web_view() {
         setContentView(R.layout.activity_webview);
-        //final ImageView iv = (ImageView) findViewById(R.id.iv_web);
         final Button prev2 = (Button) findViewById(R.id.btn_prev2);
         final WebView wv = (WebView) findViewById(R.id.siteweb);
-
-        //wv.setWebViewClient(new WebViewClient()); // 클릭시 새창 안뜨게
-        //wv.getSettings().setSupportZoom(true);
+        
         wv.getSettings().setAllowContentAccess(true);
         wv.getSettings().setAllowFileAccess(true);
         wv.getSettings().setUseWideViewPort(true);
         wv.getSettings().setLoadWithOverviewMode(true);
-        //wv.loadUrl("file:///android_asset/naver.html");
-        //wv.loadUrl("view-source:www.naver.com.html");
-        //wv.loadUrl("view-source:www." + finalurl);
-        //mWebSettings.setCacheMode(WebSettings.LOAD_NO_CACHE);
 
-        //wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/naver.html");
-        //wv.loadUrl("file:///android_asset/clc.html");
-        //Log.d("html", "경로안내 : " + getExternalFilesDir(null).getPath());
-        //wv.loadUrl("/storage/emulated/0/Android/data/com.example.capstondesign1/files/htmlfile/naver.html");
         wv.loadUrl("file:///" + getExternalFilesDir(null) + "/htmlfile/testhtml.html");
         Log.d("html", wv.getUrl());
 
@@ -599,11 +589,11 @@ public class MainActivity extends AppCompatActivity {
                 Log.d("error", "파일 쓰기 준비 완료");
                 String gethtml = doc.toString();
                 Log.d("error", "파일 문자열 변환 완료");
-                if(gethtml.contains("document.location.href") ||  gethtml.contains("window.location") || gethtml.contains("window.location.href")) {
-                    gethtml = gethtml.replaceAll("document.location.href", "dang");
-                    //gethtml = gethtml.replaceAll("http-equiv", "dang");
-                    gethtml = gethtml.replaceAll("window.location", "dang");
-                    gethtml = gethtml.replaceAll("window.location.href", "dang");
+                if(gethtml.contains("document.location.href") ||  gethtml.contains("window.location") || gethtml.contains("http-equiv=\"refresh\"") || gethtml.contains("window.location.href")) {
+                    gethtml = gethtml.replaceAll("document.location.href", "");
+                    gethtml = gethtml.replaceAll("http-equiv=\"refresh\"", "http-equiv=\"\"");
+                    gethtml = gethtml.replaceAll("window.location", "");
+                    gethtml = gethtml.replaceAll("window.location.href", "");
                 }
                 bw.write(gethtml);
                 Log.d("html", doc.toString());
@@ -654,5 +644,21 @@ public class MainActivity extends AppCompatActivity {
             sms_report1 = "\n 문자메시지 탐지 결과 \n주의하세요!! " + sms_report1 + sms_report2;
 
         Log.d("sms", "sms_report1 : " + sms_report1 + " sms_report2 : " + sms_report2);
+    }
+
+    public void submit_report() {
+        BufferedWriter bw = null;
+        try {
+            File dir = new File(getExternalFilesDir(null) + "/reportfile");
+            if (!dir.exists()) {
+                dir.mkdir();
+            }
+            File testreport = new File(getExternalFilesDir(null) + "/reportfile/testreport.txt");
+            bw = new BufferedWriter(new FileWriter(testreport, true));
+            bw.write(message);
+            bw.newLine();
+            bw.close();
+        }
+        catch(Exception e) {}
     }
 }
